@@ -5,7 +5,7 @@
 [![Build Status][ci-image]][ci-url]
 [![Test Coverage][coverage-image]][coverage-url]
 [![Dependency Status][daviddm-image]][daviddm-url]
-[![Follow @fabrix-app on Twitter][twitter-image]][twitter-url]
+[![Follow @FabrixApp on Twitter][twitter-image]][twitter-url]
 
 Fabrix is a strongly typed modern web application framework for Node.js. It builds on the pedigree of [Rails](http://rubyonrails.org/) and [Grails](https://grails.org/) to accelerate development by adhering to a straightforward, convention-based, API-driven design philosophy.
 
@@ -44,17 +44,17 @@ Generators:
     fab service <service-name>
     
   Create New Spool
-      fab spool <spool-name>
+    fab spool <spool-name>
 ```
 
 #### Run
 
-Once installation is complete, begin your journey!
+Once installation is complete, begin weaving!
 ```sh
-$ node server.js
+$ npm run build && node dist/server.js
 ```
 
-#### Happy Fabrix!
+#### Sew on and Sew Forth!
 
 ## Spools
 
@@ -64,6 +64,7 @@ capabilities and allow developers to leverage existing ecosystem tools through a
 Many Fabrix installations will include some of the following Spools:
 
 - [router](https://github.com/fabrix-app/spool-router)
+- [i81n](https://github.com/fabrix-app/spool-i18n)
 - [repl](https://github.com/fabrix-app/spool-repl)
 - [express](https://github.com/fabrix-app/spool-express)
 - [sequelize](https://github.com/fabrix-app/spool-sequelize)
@@ -84,10 +85,10 @@ See [**fabrix.app/doc**](http://fabrix.app/doc) for complete documentation.
 #### Videos
 
 #### Support
-- [Live Gitter Chat](https://gitter.im/fabrix-app/fabrix)
-- [Twitter](https://twitter.com/fabrix-app)
+- [Live Gitter Chat](https://gitter.im/fabrix-app/Lobby)
+- [Twitter](https://twitter.com/FabrixApp)
 - [Fabrix.app Website](http://fabrix.app/support)
-- [Stackoverflow](http://stackoverflow.com/questions/tagged/fabrix-app)
+- [Stackoverflow](http://stackoverflow.com/questions/tagged/fabrix)
 
 ## FAQ
 
@@ -96,6 +97,11 @@ See https://github.com/fabrix-app/fabrix/wiki/FAQ
 ## Contributing
 We love contributions! Please check out our [Contributor's Guide](https://github.com/fabrix-app/fabrix/blob/master/.github/CONTRIBUTING.md) for more
 information on how our projects are organized and how to get started.
+
+## Development
+Fabrix uses a continuous integration process and all tests must pass for Fabrix to release a new version.  CircleCI releases a new version when a PR is merged into master.  For local development, you can download [CircleCI's local development tools](https://circleci.com/docs/2.0/local-cli/#installing-the-circleci-local-cli-on-macos-and-linux-distros) and run local tests before submitting a Pull Request.
+
+Fabrix maintains a high score of coverage tests, any Pull Request should have well written Integration and Unit tests that increase the overall coverage score. 
 
 ## License
 [MIT](https://github.com/fabrix-app/fabrix/blob/master/LICENSE)
@@ -112,8 +118,8 @@ Fabrix would not have been possible without the substantial work done by the [Tr
 [daviddm-image]: http://img.shields.io/david/fabrix-app/fabrix.svg?style=flat-square
 [daviddm-url]: https://david-dm.org/fabrix-app/fabrix
 [gitter-image]: http://img.shields.io/badge/+%20GITTER-JOIN%20CHAT%20%E2%86%92-1DCE73.svg?style=flat-square
-[gitter-url]: https://gitter.im/fabrix-app/fabrix
-[twitter-image]: https://img.shields.io/twitter/follow/fabrix-app.svg?style=social
+[gitter-url]: https://gitter.im/fabrix-app/Lobby
+[twitter-image]: https://img.shields.io/twitter/follow/FabrixApp.svg?style=social
 [twitter-url]: https://twitter.com/FabrixApp
 [coverage-image]: https://img.shields.io/codeclimate/coverage/github/fabrix-app/fabrix.svg?style=flat-square
 [coverage-url]: https://codeclimate.com/github/fabrix-app/fabrix/coverage

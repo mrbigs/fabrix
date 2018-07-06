@@ -1,3 +1,4 @@
+import { union, defaultsDeep } from 'lodash'
 import { FabrixApp } from './'
 import * as mkdirp from 'mkdirp'
 import { Templates } from './'
@@ -95,12 +96,12 @@ export const Core = {
    * Bind the context of API resource methods.
    */
   bindMethods (app: FabrixApp, resource: string): any {
-    return Object.entries(app.api[resource])
+    return Object.entries(app.api[resource] || { })
       .map(([ resourceName, Resource ]: [string, any]) => {
         const objContext = <typeof Resource> Resource
         const obj = new objContext(app)
 
-        obj.methods = Core.getClassMethods(obj) || []
+        obj.methods = Core.getClassMethods(obj) || [ ]
         Object.entries(obj.methods).forEach(([ _, method]: [any, string])  => {
           obj[method] = obj[method].bind(obj)
         })
@@ -109,6 +110,20 @@ export const Core = {
       .reduce((result, [ resourceName, _resource ]: [string, any]) => Object.assign(result, {
         [resourceName]: _resource
       }), { })
+  },
+
+  /**
+   * Instantiate resource classes and bind resource methods
+   */
+  bindResourceMethods(app: FabrixApp, resources: string[]): void {
+    resources.forEach(resource => {
+      try {
+        app[resource] = Core.bindMethods(app, resource)
+      }
+      catch (err) {
+        app.log.error(err)
+      }
+    })
   },
 
   /**
@@ -134,17 +149,109 @@ export const Core = {
   },
 
   /**
-   * Merge the app api resources with the ones provided by the spools
+   * Get the property names of an Object
    */
-  mergeApi (
-    app: FabrixApp,
-    spool: Spool,
-    defaults = [ ]
-  ) {
-    defaults.forEach(resource => Object.assign(
-      app.api[resource] || {},
-      spool.api[resource] || {})
-    )
+  getPropertyNames(obj) {
+    return Object.getOwnPropertyNames(obj.prototype)
+  },
+
+  /**
+   * If the object has a prototype property
+   */
+  hasPrototypeProperty(obj, proto) {
+    return obj.prototype.hasOwnProperty(proto)
+  },
+
+  /**
+   * Merge the Prototype of uninitiated classes
+   */
+  mergePrototype(obj, next, proto) {
+    obj.prototype[proto] = next.prototype[proto]
+  },
+
+  /**
+   * Merge the app api resources with the ones provided by the spools
+   * Given that they are allowed by app.config.main.resources
+   */
+  mergeApi (app: FabrixApp) {
+    const spools = Object.keys(app.spools).reverse()
+    app.resources.forEach(resource => {
+      spools.forEach(s => {
+        // Add the defaults from the spools Apis
+        defaultsDeep(app.api, app.spools[s].api)
+        // Deep merge the Api
+        Core.mergeApiResource(app, app.spools[s], resource)
+      })
+    })
+  },
+
+  /**
+   * Adds Api resources that were not merged by default
+   */
+  mergeApiResource (app: FabrixApp, spool: Spool, resource: string) {
+    if (app.api.hasOwnProperty(resource) && spool.api.hasOwnProperty(resource)) {
+      Object.keys(spool.api[resource]).forEach(method => {
+        Core.mergeApiResourceMethod(app, spool, resource, method)
+      })
+    }
+  },
+
+  /**
+   * Adds Api resource methods that were not merged by default
+   */
+  mergeApiResourceMethod (app: FabrixApp, spool: Spool, resource: string, method: string) {
+    if (spool.api[resource].hasOwnProperty(method) && app.api[resource].hasOwnProperty(method)) {
+      const spoolProto = Core.getPropertyNames(spool.api[resource][method])
+      spoolProto.forEach(proto => {
+        if (!Core.hasPrototypeProperty(app.api[resource][method], proto)) {
+          Core.mergePrototype(app.api[resource][method], spool.api[resource][method], proto)
+          app.log.silly(`${spool.name}.api.${resource}.${method}.${proto} extending app.api.${resource}.${method}.${proto}`)
+        }
+      })
+    }
+  },
+
+  /**
+   * Merge the spool api resources with the ones provided by other spools
+   * Given that they are allowed by app.config.main.resources
+   */
+  mergeSpoolApi (app: FabrixApp, spool: Spool) {
+    app.resources = union(app.resources, Object.keys(app.api), Object.keys(spool.api))
+
+    const spools = Object.keys(app.spools)
+      .filter(s => s !== spool.name)
+
+    app.resources.forEach(resource => {
+      spools.forEach(s => {
+        Core.mergeSpoolApiResource(app, app.spools[s], spool, resource)
+      })
+    })
+  },
+
+  /**
+   * Merge two Spools Api Resources's in order of their load
+   */
+  mergeSpoolApiResource (app: FabrixApp, spool: Spool, next: Spool, resource: string) {
+    if (spool.api.hasOwnProperty(resource) && next.api.hasOwnProperty(resource)) {
+      Object.keys(next.api[resource]).forEach(method => {
+        Core.mergeSpoolApiResourceMethod(app, spool, next, resource, method)
+      })
+    }
+  },
+
+  /**
+   * Merge two Spools Api Resources Method's in order of their load
+   */
+  mergeSpoolApiResourceMethod (app: FabrixApp, spool: Spool, next: Spool, resource: string, method: string) {
+    if (spool.api[resource].hasOwnProperty(method) && next.api[resource].hasOwnProperty(method)) {
+      const spoolProto = Core.getPropertyNames(spool.api[resource][method])
+      spoolProto.forEach(proto => {
+        if (!Core.hasPrototypeProperty(next.api[resource][method], proto)) {
+          Core.mergePrototype(next.api[resource][method], spool.api[resource][method], proto)
+          app.log.silly(`${spool.name}.api.${resource}.${method}.${proto} extending ${next.name}.api.${resource}.${method}.${proto}`)
+        }
+      })
+    }
   },
 
   /**
@@ -158,6 +265,9 @@ export const Core = {
     for (const ext of Object.keys(extensions)) {
       if (!extensions.hasOwnProperty(ext)) {
         continue
+      }
+      if (app.hasOwnProperty(ext)) {
+        app.log.warn(`Spool Extension ${spool.name}.${ext} overriding app.${ext}`)
       }
       Object.defineProperty(app, ext, spool.extensions[ext])
     }
