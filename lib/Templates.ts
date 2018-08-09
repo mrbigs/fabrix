@@ -10,6 +10,7 @@ export const Templates = {
     start: 'Spooling up...',
     stop: 'Spooling down...',
     initialized: 'All spools are loaded.',
+    sane: `Sanity check complete`,
     ready (app: FabrixApp) {
       const baseUrl = app.config.get('web.baseUrl') ||
           `http://${app.config.get('web.host') || 'localhost'}:${app.config.get('web.port') || '80'}`
@@ -33,7 +34,7 @@ export const Templates = {
         Web Server Info
           Server            : ${app.config.get('web.server') || 'NOT INSTALLED'}
           Port              : ${app.config.get('web.port') || 'N/A'}
-          Routes            : ${(app.routes || [ ]).length}`
+          Routes            : ${(app.routes || new Map()).size}`
       )
     }
   },
@@ -54,14 +55,25 @@ export const Templates = {
       )
     },
 
+    sane: `Sanity checks keep us happy`,
+    // tslint:disable:max-line-length
     initialized: `
-                                                 
- ,---.        ,--.          ,--.                 
-/  .-' ,--,--.|  |-. ,--.--.\`--',--.  ,--.      
-|  \`-,' ,-.  || .-. '|  .--',--. \\  \`'  /     
-|  .-'\\ '-'  || \`-' ||  |   |  | /  /.  \\     
-\`--'   \`--\`--' \`---' \`--'   \`--''--'  '--' 
-                                                 
+                                                                          
+            ███████                                      ██               
+           █████  █              ████                   ████              
+           ████                 █████                    ██               
+          ██████    ████ ████   ████ ███    █████ ███  ████  ████  ████   
+          ████   █████  ████    ████  ████  ███████████████  █████   ██   
+         █████  ████    ████   ████    ███  ████   █  ████    ████  ██    
+         ████  █████   █████   ████    ███ ████       ████    ██████      
+        █████  ████    ████   █████   ███  ████      ████      ████       
+        ████   ████   █████   ████   ████ █████      ████    ██████       
+        ████   ████████████████████████   ████       ████████   ██████    
+       ████      ███    ███     ████     █████        ████       ███      
+   ██  ████                                                               
+  ██  ████                                                                
+   ██████                                                                 
+                                                                          
 `
   }
 }

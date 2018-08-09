@@ -159,6 +159,23 @@ describe('Fabrix', () => {
           })
         })
 
+        it('should be able to reassign a previously null value', () => {
+          const def = {
+            pkg: { },
+            api: { },
+            config: {
+              main: {
+                spools: [ Testspool ]
+              },
+              test: {
+                prefix: '/api'
+              }
+            }
+          }
+          const app = new FabrixApp(def)
+          assert.equal(app.config.get('test.prefix'), '/api')
+        })
+
         it('should disallow re-assignment of config object', () => {
           const def = {
             pkg: { },
@@ -202,12 +219,14 @@ describe('Fabrix', () => {
                 spools: [ Testspool ]
               },
               test: {
-                val: 1
+                val: 1,
+                array: [1, 2, 3]
               }
             }
           }
           const app = new FabrixApp(def)
           assert.equal(app.config.get('test.val'), 1)
+          assert.deepEqual(app.config.get('test.array'), [1, 2, 3])
           assert.equal(app.config.get('test.otherval'), 1)
         })
 
@@ -527,6 +546,20 @@ describe('Fabrix', () => {
         app.emit('test1', 1)
 
         return eventPromise
+      })
+    })
+
+    describe('#sanity', () => {
+      let app
+      before(() => {
+        app = new FabrixApp(testAppDefinition)
+      })
+
+      // https://github.com/fabrix-app/fabrix/issues/11
+      it.skip('should log itself without failing', (done) => {
+        app.log.info(app)
+        console.log(app)
+        done()
       })
     })
   })

@@ -10,7 +10,9 @@ module.exports = class Testspool extends Spool {
       config: {
         test: {
           val: 0,
-          otherval: 1
+          array: [3, 4, 5],
+          otherval: 1,
+          prefix: null
         }
       },
       api: {

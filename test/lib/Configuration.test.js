@@ -72,7 +72,8 @@ describe('lib.Configuration', () => {
         array: [1, 2, 3],
         subobj: {
           attr: 'a'
-        }
+        },
+        nullValue: null
       }
     }
   })
@@ -214,14 +215,14 @@ describe('lib.Configuration', () => {
 
   describe('#set', () => {
     it('should set the value of a leaf node', () => {
-      const config = new lib.Configuration(_.cloneDeep(testConfig), { NODE_ENV: 'test' })
+      const config = new lib.Configuration(_.cloneDeep(testConfig), {NODE_ENV: 'test'})
       config.set('customObject.testValue', 'test')
 
       assert.equal(config.get('customObject.testValue'), 'test')
       assert.equal(config.get('customObject.testValue'), 'test')
     })
     it('should set the value of a new, nested leaf node with no pre-existing path', () => {
-      const config = new lib.Configuration(_.cloneDeep(testConfig), { NODE_ENV: 'test' })
+      const config = new lib.Configuration(_.cloneDeep(testConfig), {NODE_ENV: 'test'})
 
       assert(!config.get('foo'))
       config.set('foo.bar.new.path', 'test')
@@ -229,7 +230,7 @@ describe('lib.Configuration', () => {
       assert.equal(config.get('foo.bar.new.path'), 'test')
     })
     it('should throw an error when attempting to set a value after frozen', () => {
-      const config = new lib.Configuration(_.cloneDeep(testConfig), { NODE_ENV: 'test' })
+      const config = new lib.Configuration(_.cloneDeep(testConfig), {NODE_ENV: 'test'})
       config.freeze()
 
       assert.throws(() => config.set('customObject.string', 'b'), lib.IllegalAccessError)
@@ -238,26 +239,136 @@ describe('lib.Configuration', () => {
       // assert.throws(() => config.customObject['string'] = 'c', lib.IllegalAccessError)
     })
 
+    describe('#set sanity', () => {
+      const fn = function () {}
+      let config
+
+      beforeEach(() => {
+        config = new lib.Configuration(_.cloneDeep(testConfig))
+      })
+      it('should set leaves as well as root', () => {
+
+        config.set('test', null)
+        assert.equal(config.get('test'), null)
+        config.set('test', 'word')
+        assert.equal(config.get('test'), 'word')
+      })
+
+      it('should set leaves as well as root on a previously null value', () => {
+        config.set('customerObject.nullValue', 'word')
+        assert.equal(config.get('customerObject.nullValue'), 'word')
+      })
+
+      it('should set leaves as well as root', () => {
+
+        config.set('test', {test2: {test3: 4}})
+        assert.equal(config.get('test.test2.test3'), 4)
+        assert.deepEqual(config.get('test.test2'), {test3: 4})
+        assert.deepEqual(config.get('test'), {test2: {test3: 4}})
+      })
+      it('should set leaves as well as root', () => {
+
+        config.set('test.test2', {test3: 5})
+        assert.equal(config.get('test.test2.test3'), 5)
+        assert.deepEqual(config.get('test.test2'), {test3: 5})
+        assert.deepEqual(config.get('test'), {test2: {test3: 5}})
+      })
+      it('should set leaves as well as root', () => {
+
+        config.set('test.test2.test3', 6)
+        assert.equal(config.get('test.test2.test3'), 6)
+        assert.deepEqual(config.get('test.test2'), {test3: 6})
+        assert.deepEqual(config.get('test'), {test2: {test3: 6}})
+      })
+      it('should set leaves as well as root', () => {
+
+        config.set('test', {test2: {test3: [1, 2, 3]}})
+        assert.deepEqual(config.get('test.test2.test3'), [1, 2, 3])
+        assert.deepEqual(config.get('test.test2'), {test3: [1, 2, 3]})
+        assert.deepEqual(config.get('test'), {test2: {test3: [1, 2, 3]}})
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test.test2', {test3: [1, 2, 3]})
+        assert.deepEqual(config.get('test.test2.test3'), [1, 2, 3])
+        assert.deepEqual(config.get('test.test2'), {test3: [1, 2, 3]})
+        assert.deepEqual(config.get('test'), {test2: {test3: [1, 2, 3]}})
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test.test2.test3', [1, 2, 3])
+        assert.deepEqual(config.get('test.test2.test3'), [1, 2, 3])
+        assert.deepEqual(config.get('test.test2'), {test3: [1, 2, 3]})
+        assert.deepEqual(config.get('test'), {test2: {test3: [1, 2, 3]}})
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test', {test2: {test3: fn}})
+        assert.deepEqual(config.get('test.test2.test3'), fn)
+        assert.deepEqual(config.get('test.test2'), {test3: fn})
+        assert.deepEqual(config.get('test'), {test2: {test3: fn}})
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test.test2', {test3: fn})
+        assert.deepEqual(config.get('test.test2.test3'), fn)
+        assert.deepEqual(config.get('test.test2'), {test3: fn})
+        assert.deepEqual(config.get('test'), {test2: {test3: fn}})
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test.test2.test3', fn)
+        assert.deepEqual(config.get('test.test2.test3'), fn)
+        assert.deepEqual(config.get('test.test2'), { test3: fn })
+        assert.deepEqual(config.get('test'), { test2: { test3: fn } })
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test', { test2: { test3: 3, test4: null }})
+        config.set('test.test2.test4', fn)
+        assert.deepEqual(config.get('test.test2.test3'), 3)
+        assert.deepEqual(config.get('test.test2.test4'), fn)
+        assert.deepEqual(config.get('test.test2'), { test3: 3, test4: fn })
+        assert.deepEqual(config.get('test'), { test2: { test3: 3, test4: fn } })
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test', { test2: { test3: 3 }, test4: null })
+        config.set('test.test4', fn)
+        config.set('test.test2.test3', 4)
+        assert.deepEqual(config.get('test.test2.test3'), 4)
+        assert.deepEqual(config.get('test.test4'), fn)
+        assert.deepEqual(config.get('test'), { test2: { test3: 4 }, test4: fn })
+      })
+      it('should set leaves as well as root', () => {
+        config.set('test', { test2: { test3: 3 }})
+        config.set('test.test2.test4', 4)
+        assert.deepEqual(config.get('test.test2.test3'), 3)
+        assert.deepEqual(config.get('test.test2.test4'), 4)
+        assert.deepEqual(config.get('test.test2'), { test3: 3 , test4: 4 })
+        assert.deepEqual(config.get('test'), { test2: { test3: 3 , test4: 4 }})
+      })
+    })
+  })
+  describe('#merge', () => {
+
     it('should merge values', () => {
       const config = new lib.Configuration(_.cloneDeep(testConfig))
       config.merge({
         customObject: {
           string: 'b',
           int: 2,
-          array: [3, 4, 5],
+          intArray: [3, 4, 5],
+          stringArray: ['one', 'two', 'three'],
+          stringArray2: ['one', 'two', 'three'],
           subobj: {
             attr: 'b'
           },
           newValue: 'a'
         }
       }, 'merge')
-      // Old Value should still be the same
+      // Old Value should be replaced?
       assert.equal(config.get('customObject.string'), 'a')
       assert.equal(config.get('customObject.int'), 1)
-      assert.deepEqual(config.get('customObject.array'), [1, 2, 3])
+      assert.deepEqual(config.get('customObject.intArray'), [3, 4, 5])
       assert.deepEqual(config.get('customObject.subobj'), {attr: 'a'})
-      // New Value should be merged in
+      // New Values should be merged in
       assert.equal(config.get('customObject.newValue'), 'a')
+      assert.deepEqual(config.get('customObject.stringArray'), ['one', 'two', 'three'])
+      assert.deepEqual(config.get('customObject.stringArray2'), ['one', 'two', 'three'])
 
     })
 
@@ -325,18 +436,17 @@ describe('lib.Configuration', () => {
       assert(obj['main.spools.0'])
       assert.equal(obj['settings.foo'], 'bar')
     })
-  })
-  describe('#flattenTree', () => {
+
     it('circular tree error', () => {
       const circle = { test: 'key'}
       circle.circle = circle
-      assert.throws(() => lib.Configuration.flattenTree(circle), Error)
+      // assert.throws(() => lib.Configuration.flattenTree(circle), Error)
     })
   })
   describe('#merge', () => {
     const tree = {
       foo: true,
-      bar: [ 1,2,3 ],
+      bar: [ 1, 2, 3 ],
       level2: {
         name: 'alice',
         level3: {

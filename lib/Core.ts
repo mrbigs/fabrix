@@ -1,4 +1,4 @@
-import { union, defaultsDeep } from 'lodash'
+import { union, defaultsDeep, isArray, toArray, mergeWith } from 'lodash'
 import { FabrixApp } from './'
 import * as mkdirp from 'mkdirp'
 import { Templates } from './'
@@ -11,6 +11,7 @@ import {
   NamespaceConflictError,
   PackageNotDefinedError,
   TimeoutError,
+  SanityError,
   SpoolError,
   ValidationError
 } from './errors'
@@ -39,12 +40,15 @@ export const Errors = {
   NamespaceConflictError,
   PackageNotDefinedError,
   TimeoutError,
+  SanityError,
   SpoolError,
   ValidationError
 }
 
 export const Core = {
-
+  // An Exception convenience
+  BreakException: {},
+  // Methods reserved so that they are not autobound
   reservedMethods: [
     'app',
     'api',
@@ -273,6 +277,63 @@ export const Core = {
     }
   },
 
+  defaultsDeep: (...args) => {
+    const output = {}
+    toArray(args).reverse().forEach(function (item) {
+      mergeWith(output, item, function (objectValue, sourceValue) {
+        return isArray(sourceValue) ? sourceValue : undefined
+      })
+    })
+    return output
+  },
+
+  collector: (stack, key, val) => {
+    let idx: any = stack[stack.length - 1].indexOf(key)
+    try {
+      const props: any = Object.keys(val)
+      if (!props.length) {
+        throw props
+      }
+      props.unshift({idx: idx})
+      stack.push(props)
+    }
+    catch (e) {
+      while (!(stack[stack.length - 1].length - 2)) {
+        idx = stack[stack.length - 1][0].idx
+        stack.pop()
+      }
+
+      if (idx + 1) {
+        stack[stack.length - 1].splice(idx, 1)
+      }
+    }
+    return val
+  },
+
+  isNotCircular: (obj) => {
+    let stack = [[]]
+
+    try {
+      return !!JSON.stringify(obj, Core.collector.bind(null, stack))
+    }
+    catch (e) {
+      if (e.message.indexOf('circular') !== -1) {
+        let idx = 0
+        let path = ''
+        let parentProp = ''
+        while (idx + 1) {
+          idx = stack.pop()[0].idx
+          parentProp = stack[stack.length - 1][idx]
+          if (!parentProp) {
+            break
+          }
+          path = '.' + parentProp + path
+        }
+      }
+      return false
+    }
+  },
+
   /**
    * Create configured paths if they don't exist
    */
@@ -305,6 +366,10 @@ export const Core = {
       app.log.silly(Templates.silly.initialized)
       app.log.info(Templates.info.initialized)
     })
+    app.once('spool:all:sane', () => {
+      app.log.silly(Templates.silly.sane)
+      app.log.info(Templates.info.sane)
+    })
     app.once('fabrix:ready', () => {
       app.log.info(Templates.info.ready(app))
       app.log.debug(Templates.debug.ready(app))
@@ -331,6 +396,7 @@ export const Core = {
     const validatedEvents = spools.map(spool => `spool:${spool.name}:validated`)
     const configuredEvents = spools.map(spool => `spool:${spool.name}:configured`)
     const initializedEvents = spools.map(spool => `spool:${spool.name}:initialized`)
+    const sanityEvents = spools.map(spool => `spool:${spool.name}:sane`)
 
     app.after(configuredEvents).then(async () => {
       await this.createDefaultPaths(app)
@@ -343,6 +409,11 @@ export const Core = {
     app.after(initializedEvents)
       .then(() => {
         app.emit('spool:all:initialized')
+      })
+
+    app.after(sanityEvents)
+      .then(() => {
+        app.emit('spool:all:sane')
         app.emit('fabrix:ready')
       })
   },
@@ -356,6 +427,14 @@ export const Core = {
     spool: Spool
   ) {
     const lifecycle = spool.lifecycle
+
+    app.after((lifecycle.sanity.listen).concat('spool:all:initialized'))
+      .then(() => app.log.debug('spool: sanity check', spool.name))
+      .then(() => spool.stage = 'sanity')
+      .then(() => spool.sanity())
+      .then(() => app.emit(`spool:${spool.name}:sane`))
+      .then(() => spool.stage = 'sane')
+      .catch(this.handlePromiseRejection)
 
     app.after((lifecycle.initialize.listen).concat('spool:all:configured'))
       .then(() => app.log.debug('spool: initializing', spool.name))
